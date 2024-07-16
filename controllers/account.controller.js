@@ -28,8 +28,8 @@ export const accountLogin = async (req, res) => {
 };
 export const accountRegister = async (req, res) => {
   try {
-    const { accountEmail, accountPassword, accountName } = req.body;
-    if (!accountEmail || !accountPassword || !accountName) {
+    const { accountEmail, accountPassword, accountName , accountPIN , firstName , lastName , phoneNo  } = req.body;
+    if (!accountEmail || !accountPassword || !accountName ||!accountPIN , !firstName , !lastName) {
       return res.status(400).json({ message: "body must not empty" });
     }
     if (!validator.validate(accountEmail)) {
@@ -47,6 +47,10 @@ export const accountRegister = async (req, res) => {
       accountEmail: accountEmail,
       accountPassword: accountPassword,
       accountName: accountName,
+      firstName: firstName,
+      lastName: lastName,
+      
+    
       balance: 0,
     });
     console.log(result);
@@ -105,3 +109,20 @@ export const getBalanceTren = async (req, res) => {
     console.log(error);
   }
 };
+export const getAccountData = async (req , res )=>{
+  try {
+    if(!req.params.id){
+      return res.status(400).json({
+        message: "id param not found"
+      })
+    }
+    const isExist = await account.findOne({
+      where:{
+        accountId : req.params.id
+      }
+    })
+    return res.status(200).json(isExist)
+  } catch (error) {
+    console.log(error)
+  }
+}

@@ -62,9 +62,9 @@ export const createGoal = async (req, res) => {
 };
 export const updateGoal = async (req, res) => {
   try {
-    const { goalId, accountId, amount } = req.body;
+    const { goalId, accountId, amount, endGoal } = req.body;
     if (!goalId || !amount || !accountId) {
-      return res.status(400).json({ meesage: "must not empty" });
+      return res.status(400).json({ message: "must not empty" });
     }
     if (isNaN(amount)) {
       return res.status(400).json({ message: "passed is not number" });
@@ -74,12 +74,26 @@ export const updateGoal = async (req, res) => {
         goalId: goalId,
       },
     });
+
+    const isValid = await account.findOne({
+      where: {
+        accountId: accountId,
+      },
+    });
+
     if (!isExist) {
       return res.status(400).json({ message: "goal id not found" });
     }
-    if (isExist.balance < amount) {
+
+    if (!isValid) {
+      return res.status(400).json({ message: "account id not found" });
+    }
+    if (isValid.balance < amount) {
       return res.status(400).json({ message: "balance is not enough" });
     }
+
+    isValid.balance = isValid.balance - Number(amount);
+    await isValid.save();
 
     const userGoal = await goal.findOne({
       where: {
@@ -89,18 +103,17 @@ export const updateGoal = async (req, res) => {
     });
 
     userGoal.currentGoal = userGoal.currentGoal + Number(amount);
-
+    userGoal.endGoal = endGoal;
     await userGoal.save();
-    console.log("ANG", userGoal.currentGoal);
+
     const now = new Date();
 
     const formattedDate = format(now, "yyyy-MM-dd HH:mm:ss");
-    isExist.balance = isExist.balance - Number(amount);
-    await isExist.save();
+
     await transaction.create({
       accountId: accountId,
       transactionType: "expense",
-      categoryName: "saving in",
+      categoryName: "Primary",
       title: userGoal.goalTitle,
       amount: amount,
       timestamps: formattedDate,
@@ -111,6 +124,7 @@ export const updateGoal = async (req, res) => {
     console.log(error);
   }
 };
+
 export const changeEndGoal = async (req, res) => {
   try {
     const { accountId, goalId, endGoal } = req.body;
@@ -144,3 +158,31 @@ export const changeEndGoal = async (req, res) => {
     console.log(error);
   }
 };
+export const deleteGoal = async (req , res ) =>{
+  try {
+    const {goalId } = req.body
+    if(!goalId){
+      return res.status(400).json({message: "goal id must not be empty"})
+    }
+    const isExist =  await goal.findOne({
+      where:{
+        goalId : goalId
+      }
+    })
+    if(!isExist){
+      return res.status(400).json({message :"goal id not found"})
+    }
+    await goal.destroy({
+      where :{
+        goalId : goalId
+      }
+    })
+    return res.status(200).json({
+      message: "goal deleted"
+    })
+
+
+  } catch (error) {
+    console.log(error)
+  }
+}
